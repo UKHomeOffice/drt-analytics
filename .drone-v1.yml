@@ -18,8 +18,8 @@ steps:
       - sbt scapegoat | true
     environment:
       ARTIFACTORY_PASSWORD:
-        from_secret: MY_ARTIFICATORY_SECRET
-      ARTIFACTORY_USERNAME: nilesh.gupta@digital.homeoffice.gov.uk
+        from_secret: ARTIFACTORY_PASSWORD
+      ARTIFACTORY_USERNAME: drt_optimiser_drone
       ENV_LOG_LEVEL: ERROR
     when:
       event:
@@ -48,8 +48,8 @@ steps:
       - sbt test
     environment:
       ARTIFACTORY_PASSWORD:
-        from_secret: MY_ARTIFICATORY_SECRET
-      ARTIFACTORY_USERNAME: nilesh.gupta@digital.homeoffice.gov.uk
+        from_secret: ARTIFACTORY_PASSWORD
+      ARTIFACTORY_USERNAME: drt_optimiser_drone
     when:
       event:
         - push
@@ -62,8 +62,8 @@ steps:
       - sbt docker:stage
     environment:
       ARTIFACTORY_PASSWORD:
-        from_secret: MY_ARTIFICATORY_SECRET
-      ARTIFACTORY_USERNAME: nilesh.gupta@digital.homeoffice.gov.uk
+        from_secret: ARTIFACTORY_PASSWORD
+      ARTIFACTORY_USERNAME: drt_optimiser_drone
     when:
       event:
         - push
