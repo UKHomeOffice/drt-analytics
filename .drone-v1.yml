@@ -18,8 +18,8 @@ steps:
       - sbt scapegoat | true
     environment:
       ARTIFACTORY_PASSWORD:
-        from_secret: ARTIFACTORY_PASSWORD
-      ARTIFACTORY_USERNAME: drt_ci
+        from_secret: MY_ARTIFICATORY_SECRET
+      ARTIFACTORY_USERNAME: nilesh.gupta@digital.homeoffice.gov.uk
       ENV_LOG_LEVEL: ERROR
     when:
       event:
