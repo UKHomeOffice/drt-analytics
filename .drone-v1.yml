@@ -19,7 +19,7 @@ steps:
     environment:
       ARTIFACTORY_PASSWORD:
         from_secret: ARTIFACTORY_PASSWORD
-      ARTIFACTORY_USERNAME: scala-test-token
+      ARTIFACTORY_USERNAME: drt_ci
       ENV_LOG_LEVEL: ERROR
     when:
       event:
