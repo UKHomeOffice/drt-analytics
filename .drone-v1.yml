@@ -62,8 +62,8 @@ steps:
       - sbt docker:stage
     environment:
       ARTIFACTORY_PASSWORD:
-        from_secret: ARTIFACTORY_PASSWORD
-      ARTIFACTORY_USERNAME: scala-test-token
+        from_secret: MY_ARTIFICATORY_SECRET
+      ARTIFACTORY_USERNAME: nilesh.gupta@digital.homeoffice.gov.uk
     when:
       event:
         - push
