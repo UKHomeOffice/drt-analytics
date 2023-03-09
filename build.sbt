@@ -3,6 +3,7 @@ ThisBuild / scalaVersion := "2.12.8"
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "uk.gov.homeoffice"
 ThisBuild / organizationName := "drt"
+ThisBuild / scapegoatVersion := "1.4.2"
 
 lazy val akkaHttpVersion = "10.1.9"
 lazy val akkaVersion = "2.5.23"
