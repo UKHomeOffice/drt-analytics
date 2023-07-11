@@ -21,7 +21,7 @@ lazy val scalaTestVersion = "3.2.16"
 lazy val catsVersion = "2.9.0"
 lazy val awsJava2SdkVersion = "2.13.73"
 lazy val sslConfigCore = "0.6.1"
-lazy val scalaXmlVersion = "2.1.0"
+lazy val scalaXmlVersion = "2.2.0"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
