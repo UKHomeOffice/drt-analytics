@@ -3,7 +3,7 @@ ThisBuild / scalaVersion := "2.13.11"
 ThisBuild / version := "v" + sys.env.getOrElse("DRONE_BUILD_NUMBER", sys.env.getOrElse("BUILD_ID", "DEV"))
 ThisBuild / organization := "uk.gov.homeoffice"
 ThisBuild / organizationName := "drt"
-ThisBuild / scapegoatVersion := "2.1.2"
+ThisBuild / scapegoatVersion := "2.1.3"
 
 lazy val drtLib = "v593"
 
