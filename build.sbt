@@ -17,7 +17,7 @@ lazy val specs2Version = "4.20.3"
 lazy val sparkVersion = "3.5.0"
 lazy val scalaTestVersion = "3.2.17"
 lazy val catsVersion = "2.10.0"
-lazy val awsJava2SdkVersion = "2.13.76"
+lazy val awsJava2SdkVersion = "2.23.12"
 lazy val sslConfigCore = "0.6.1"
 lazy val scalaXmlVersion = "2.2.0"
 
