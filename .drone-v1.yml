@@ -21,6 +21,8 @@ steps:
     when:
       event:
         - push
+    depends_on:
+      - Dependency check
 
   - name: Build docker image
     pull: if-not-exists
