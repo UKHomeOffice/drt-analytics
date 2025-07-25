@@ -114,8 +114,8 @@ steps:
         - push
 #      branch:
 #        - leader
-    depends_on:
-      - Publish app
+#    depends_on:
+#      - Publish app
 
   - name: Sonar scanner
     pull: if-not-exists
