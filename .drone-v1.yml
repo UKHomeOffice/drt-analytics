@@ -8,6 +8,21 @@ platform:
   arch: amd64
 
 steps:
+  - name: Dependency check
+    pull: if-not-exists
+    image: quay.io/ukhomeofficedigital/scala-sbt-nodejs:v1.4.0-debian12-jdk17-node20
+    commands:
+      - /root/entrypoint.sh
+      - sbt -mem 4096 dependencyCheck
+    environment:
+      ARTIFACTORY_PASSWORD:
+        from_secret: ARTIFACTORY_PASSWORD
+      ARTIFACTORY_USERNAME: drt_ci
+      ENV_LOG_LEVEL: ERROR
+    when:
+      event:
+        - push
+
   - name: Unit tests
     pull: if-not-exists
     image: quay.io/ukhomeofficedigital/scala-sbt-nodejs:v1.4.0-debian12-jdk17-node20
@@ -100,20 +115,7 @@ steps:
     depends_on:
       - Code coverage report
 
-  - name: Dependency check
-    pull: if-not-exists
-    image: quay.io/ukhomeofficedigital/scala-sbt-nodejs:v1.4.0-debian12-jdk17-node20
-    commands:
-      - /root/entrypoint.sh
-      - sbt -mem 4096 dependencyCheck
-    environment:
-      ARTIFACTORY_PASSWORD:
-        from_secret: ARTIFACTORY_PASSWORD
-      ARTIFACTORY_USERNAME: drt_ci
-      ENV_LOG_LEVEL: ERROR
-    when:
-      event:
-        - push
+
 #      branch:
 #        - leader
 #    depends_on:
