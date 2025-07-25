@@ -38,7 +38,7 @@ steps:
       event:
         - push
     depends_on:
-      - Unit tests
+      - Dependency check
 
   - name: Publish app
     image: plugins/ecr
