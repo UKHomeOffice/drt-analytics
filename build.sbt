@@ -8,7 +8,7 @@ lazy val drtLib = "v1260"
 
 
 lazy val pekkoVersion = "1.1.3"
-lazy val pekkoHttpVersion = "1.1.0"
+lazy val pekkoHttpVersion = "1.2.0"
 lazy val pekkoPersistenceJdbcVersion = "1.1.0"
 
 lazy val postgresVersion = "42.7.5"
