@@ -112,8 +112,8 @@ steps:
     when:
       event:
         - push
-#      branch:
-#        - leader
+      branch:
+        - leader
     depends_on:
       - Scapegoat
 
