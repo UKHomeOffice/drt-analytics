@@ -1,27 +1,30 @@
 package uk.gov.homeoffice.drt.analytics.passengers
 
-import org.apache.pekko.actor.{ActorSystem, PoisonPill, Props}
+import org.apache.pekko.actor.{ ActorSystem, PoisonPill, Props }
 import org.apache.pekko.pattern.ask
 import org.apache.pekko.util.Timeout
 import org.joda.time.DateTimeZone
-import org.slf4j.{Logger, LoggerFactory}
-import uk.gov.homeoffice.drt.analytics.actors.{ArrivalsActor, FeedPersistenceIds, GetArrivals}
-import uk.gov.homeoffice.drt.analytics.{Arrivals, DailyPaxCountsOnDay, SimpleArrival}
+import org.slf4j.{ Logger, LoggerFactory }
+import uk.gov.homeoffice.drt.analytics.actors.{ ArrivalsActor, FeedPersistenceIds, GetArrivals }
+import uk.gov.homeoffice.drt.analytics.{ Arrivals, DailyPaxCountsOnDay, SimpleArrival }
 import uk.gov.homeoffice.drt.arrivals.UniqueArrival
-import uk.gov.homeoffice.drt.time.{SDate, SDateLike, UtcDate}
+import uk.gov.homeoffice.drt.time.{ SDate, SDateLike, UtcDate }
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 object DailySummaries {
   val log: Logger = LoggerFactory.getLogger(getClass)
 
-  def arrivalsForSources(sourcePersistenceIds: List[String],
-                         date: UtcDate,
-                         lastDate: UtcDate,
-                         actorProps: (String, SDateLike) => Props)
-                        (implicit ec: ExecutionContext,
-                         system: ActorSystem): Seq[Future[(String, Arrivals)]] = sourcePersistenceIds
+  def arrivalsForSources(
+      sourcePersistenceIds: List[String],
+      date: UtcDate,
+      lastDate: UtcDate,
+      actorProps: (String, SDateLike) => Props
+  )(implicit
+      ec: ExecutionContext,
+      system: ActorSystem
+  ): Seq[Future[(String, Arrivals)]] = sourcePersistenceIds
     .map { source =>
       val sDate = SDate(date)
       val pointInTimeForDate = if (source == FeedPersistenceIds.live) sDate.addHours(26) else sDate.addHours(-12)
@@ -34,8 +37,9 @@ object DailySummaries {
       result
     }
 
-  def mergeArrivals(arrivalSourceFutures: Seq[Future[(String, Arrivals)]])
-                   (implicit ec: ExecutionContext): Future[Map[UniqueArrival, SimpleArrival]] = Future.sequence(arrivalSourceFutures)
+  def mergeArrivals(arrivalSourceFutures: Seq[Future[(String, Arrivals)]])(implicit
+      ec: ExecutionContext
+  ): Future[Map[UniqueArrival, SimpleArrival]] = Future.sequence(arrivalSourceFutures)
     .map { sourcesWithArrivals =>
       log.info(s"Got all feed source responses")
       val baseArrivals = sourcesWithArrivals.toMap.getOrElse(FeedPersistenceIds.forecastBase, Arrivals(Map()))
@@ -54,12 +58,13 @@ object DailySummaries {
       }
     }
 
-  def dailyPaxCountsForDayByOrigin(date: UtcDate,
-                                   startDate: UtcDate,
-                                   numberOfDays: Int,
-                                   terminal: String,
-                                   eventualArrivals: Future[Map[UniqueArrival, SimpleArrival]])
-                                  (implicit ec: ExecutionContext): Future[Map[String, DailyPaxCountsOnDay]] = {
+  def dailyPaxCountsForDayByOrigin(
+      date: UtcDate,
+      startDate: UtcDate,
+      numberOfDays: Int,
+      terminal: String,
+      eventualArrivals: Future[Map[UniqueArrival, SimpleArrival]]
+  )(implicit ec: ExecutionContext): Future[Map[String, DailyPaxCountsOnDay]] = {
     eventualArrivals.map { arrivals =>
       log.info(s"Got all merged arrivals: ${arrivals.size}")
       val arrivalsForTerminal = arrivals.values
@@ -91,12 +96,13 @@ object DailySummaries {
     }
   }
 
-  def dailyOriginCountsToCsv(date: SDateLike,
-                             startDate: SDateLike,
-                             numberOfDays: Int,
-                             terminal: String,
-                             eventualOriginDailyPaxCounts: Future[Map[String, DailyPaxCountsOnDay]])
-                            (implicit ec: ExecutionContext): Future[String] = eventualOriginDailyPaxCounts
+  def dailyOriginCountsToCsv(
+      date: SDateLike,
+      startDate: SDateLike,
+      numberOfDays: Int,
+      terminal: String,
+      eventualOriginDailyPaxCounts: Future[Map[String, DailyPaxCountsOnDay]]
+  )(implicit ec: ExecutionContext): Future[String] = eventualOriginDailyPaxCounts
     .map { arrivals =>
       arrivals.map {
         case (origin, pc) =>
@@ -107,13 +113,15 @@ object DailySummaries {
       }.mkString("\n")
     }
 
-  def dailyPaxCountsForDayAndTerminalByOrigin(terminal: String,
-                                              startDate: UtcDate,
-                                              numberOfDays: Int,
-                                              sourcesInOrder: List[String],
-                                              )
-                                             (implicit ec: ExecutionContext,
-                                              system: ActorSystem): Future[Map[String, DailyPaxCountsOnDay]] = {
+  def dailyPaxCountsForDayAndTerminalByOrigin(
+      terminal: String,
+      startDate: UtcDate,
+      numberOfDays: Int,
+      sourcesInOrder: List[String]
+  )(implicit
+      ec: ExecutionContext,
+      system: ActorSystem
+  ): Future[Map[String, DailyPaxCountsOnDay]] = {
     val viewDate = startDate
     val lastDate = SDate(startDate).addDays(numberOfDays).toUtcDate
     val eventualsBySource = arrivalsForSources(sourcesInOrder, viewDate, lastDate, ArrivalsActor.props)
@@ -121,13 +129,16 @@ object DailySummaries {
     dailyPaxCountsForDayByOrigin(viewDate, startDate, numberOfDays, terminal, eventualMergedArrivals)
   }
 
-  def toCsv(terminal: String,
-            startDate: SDateLike,
-            numberOfDays: Int,
-            sourcesInOrder: List[String],
-            dayOffset: Int)(implicit ec: ExecutionContext, system: ActorSystem): Future[String] = {
+  def toCsv(
+      terminal: String,
+      startDate: SDateLike,
+      numberOfDays: Int,
+      sourcesInOrder: List[String],
+      dayOffset: Int
+  )(implicit ec: ExecutionContext, system: ActorSystem): Future[String] = {
     val viewDate = startDate.addDays(dayOffset)
-    val eventualCountsByOrigin = dailyPaxCountsForDayAndTerminalByOrigin(terminal, startDate.toUtcDate, numberOfDays, sourcesInOrder)
+    val eventualCountsByOrigin =
+      dailyPaxCountsForDayAndTerminalByOrigin(terminal, startDate.toUtcDate, numberOfDays, sourcesInOrder)
 
     dailyOriginCountsToCsv(viewDate, startDate, numberOfDays, terminal, eventualCountsByOrigin)
       .recoverWith { case t =>

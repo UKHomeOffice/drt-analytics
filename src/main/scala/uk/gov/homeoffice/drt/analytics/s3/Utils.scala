@@ -1,16 +1,15 @@
 package uk.gov.homeoffice.drt.analytics.s3
 
 import org.apache.pekko.Done
-import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, StaticCredentialsProvider}
+import software.amazon.awssdk.auth.credentials.{ AwsBasicCredentials, StaticCredentialsProvider }
 import software.amazon.awssdk.core.async.AsyncRequestBody
 import software.amazon.awssdk.services.s3.S3AsyncClient
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 
-import java.io.{File, FileWriter}
-import java.nio.file.{Files, Paths}
-import scala.concurrent.{ExecutionContext, Future}
+import java.io.{ File, FileWriter }
+import java.nio.file.{ Files, Paths }
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.jdk.FutureConverters.CompletionStageOps
-
 
 object Utils {
   def s3AsyncClient(accessKeyId: String, secretKeyId: String): S3AsyncClient = {
@@ -23,8 +22,9 @@ object Utils {
       .build()
   }
 
-  def writeToBucket(client: S3AsyncClient, bucketName: String, path: String)
-                   (implicit ec: ExecutionContext): (String, String) => Future[Done] =
+  def writeToBucket(client: S3AsyncClient, bucketName: String, path: String)(implicit
+      ec: ExecutionContext
+  ): (String, String) => Future[Done] =
     (fileName: String, content: String) => {
       val putObjectRequest = PutObjectRequest.builder()
         .bucket(bucketName)
@@ -37,11 +37,11 @@ object Utils {
     }
 
   def writeToFile(pathStr: String): (String, String) => Future[Done] =
-  (fileName, csvContent) => {
-    Files.createDirectories(Paths.get(pathStr))
-    val fileWriter = new FileWriter(new File(s"$pathStr/$fileName"))
-    fileWriter.write(csvContent)
-    fileWriter.close()
-    Future.successful(Done)
-  }
+    (fileName, csvContent) => {
+      Files.createDirectories(Paths.get(pathStr))
+      val fileWriter = new FileWriter(new File(s"$pathStr/$fileName"))
+      fileWriter.write(csvContent)
+      fileWriter.close()
+      Future.successful(Done)
+    }
 }

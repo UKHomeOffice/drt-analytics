@@ -1,17 +1,25 @@
 package uk.gov.homeoffice.drt.analytics.prediction.flights
 
-import org.apache.pekko.persistence.{PersistentActor, Recovery, SnapshotOffer, SnapshotSelectionCriteria}
+import org.apache.pekko.persistence.{ PersistentActor, Recovery, SnapshotOffer, SnapshotSelectionCriteria }
 import org.slf4j.LoggerFactory
 import uk.gov.homeoffice.drt.actor.commands.Commands.GetState
 import uk.gov.homeoffice.drt.analytics.actors.TerminalDateActor.ArrivalKey
 import uk.gov.homeoffice.drt.analytics.prediction.flights.FlightMessageConversions.arrivalKeyFromMessage
-import uk.gov.homeoffice.drt.arrivals.{ApiFlightWithSplits, Arrival, FlightsWithSplits}
+import uk.gov.homeoffice.drt.arrivals.{ ApiFlightWithSplits, Arrival, FlightsWithSplits }
 import uk.gov.homeoffice.drt.ports.Terminals.Terminal
-import uk.gov.homeoffice.drt.protobuf.messages.CrunchState.{FlightWithSplitsMessage, FlightsWithSplitsDiffMessage, FlightsWithSplitsMessage, SplitsForArrivalsMessage}
-import uk.gov.homeoffice.drt.protobuf.messages.FlightsMessage.{FlightsDiffMessage, UniqueArrivalMessage}
-import uk.gov.homeoffice.drt.protobuf.serialisation.FlightMessageConversion.{flightMessageToApiFlight, flightWithSplitsFromMessage, splitsForArrivalsFromMessage}
-import uk.gov.homeoffice.drt.time.{SDate, UtcDate}
-
+import uk.gov.homeoffice.drt.protobuf.messages.CrunchState.{
+  FlightWithSplitsMessage,
+  FlightsWithSplitsDiffMessage,
+  FlightsWithSplitsMessage,
+  SplitsForArrivalsMessage
+}
+import uk.gov.homeoffice.drt.protobuf.messages.FlightsMessage.{ FlightsDiffMessage, UniqueArrivalMessage }
+import uk.gov.homeoffice.drt.protobuf.serialisation.FlightMessageConversion.{
+  flightMessageToApiFlight,
+  flightWithSplitsFromMessage,
+  splitsForArrivalsFromMessage
+}
+import uk.gov.homeoffice.drt.time.{ SDate, UtcDate }
 
 trait FlightActorLike {
   private val log = LoggerFactory.getLogger(getClass)
@@ -22,7 +30,7 @@ trait FlightActorLike {
 
   def processSnapshot(ss: Any): Unit = ss match {
     case msg: FlightsWithSplitsMessage => msg.flightWithSplits.foreach(processFlightWithSplitsMessage)
-    case unexpected => log.warn(s"Got unexpected snapshot offer message: ${unexpected.getClass}")
+    case unexpected                    => log.warn(s"Got unexpected snapshot offer message: ${unexpected.getClass}")
   }
 
   def processFlightWithSplitsMessage(u: FlightWithSplitsMessage): Unit = {
@@ -34,14 +42,15 @@ trait FlightActorLike {
   def deserialiseFwsMsg(u: FlightWithSplitsMessage): Arrival =
     flightWithSplitsFromMessage(u).apiFlight
 
-  def processUpdatesAndRemovals[A](createdAt: Long,
-                                   updates: Iterable[A],
-                                   removals: Iterable[UniqueArrivalMessage],
-                                   deserialiseUpdate: A => Arrival,
-                                  ): Unit = {
+  def processUpdatesAndRemovals[A](
+      createdAt: Long,
+      updates: Iterable[A],
+      removals: Iterable[UniqueArrivalMessage],
+      deserialiseUpdate: A => Arrival
+  ): Unit = {
     (maybePointInTime, createdAt) match {
       case (Some(time), createdAt) if createdAt > time =>
-      case (_, createdAt) =>
+      case (_, createdAt)                              =>
         updates
           .map(deserialiseUpdate)
           .foreach { arrival =>
@@ -60,7 +69,7 @@ trait FlightActorLike {
   def processSplitsDiff(msg: SplitsForArrivalsMessage): Unit = {
     (maybePointInTime, msg.createdAt) match {
       case (Some(time), Some(createdAt)) if createdAt > time =>
-      case _ =>
+      case _                                                 =>
         val nowMillis = SDate.now().millisSinceEpoch
         val flightsWithSplits = FlightsWithSplits(byArrivalKey.values.map(a => ApiFlightWithSplits(a, Set(), None)))
         splitsForArrivalsFromMessage(msg).applyTo(flightsWithSplits, nowMillis, List()) match {
@@ -74,12 +83,14 @@ trait FlightActorLike {
     arrivalKeyFromMessage(r).foreach(r => byArrivalKey = byArrivalKey - r)
 }
 
-class FlightsActor(val terminal: Terminal,
-                   val date: UtcDate,
-                   val maybePointInTime: Option[Long],
-                  ) extends PersistentActor with FlightActorLike {
+class FlightsActor(
+    val terminal: Terminal,
+    val date: UtcDate,
+    val maybePointInTime: Option[Long]
+) extends PersistentActor with FlightActorLike {
 
-  override def persistenceId: String = f"terminal-flights-${terminal.toString.toLowerCase}-${date.year}-${date.month}%02d-${date.day}%02d"
+  override def persistenceId: String =
+    f"terminal-flights-${terminal.toString.toLowerCase}-${date.year}-${date.month}%02d-${date.day}%02d"
 
   override def recovery: Recovery = maybePointInTime match {
     case None =>

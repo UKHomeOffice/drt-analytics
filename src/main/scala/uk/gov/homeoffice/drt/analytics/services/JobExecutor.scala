@@ -4,33 +4,38 @@ import com.typesafe.config.Config
 import org.apache.pekko.Done
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.util.Timeout
-import org.slf4j.{Logger, LoggerFactory}
+import org.slf4j.{ Logger, LoggerFactory }
 import uk.gov.homeoffice.drt.actor.PredictionModelActor.WithId
-import uk.gov.homeoffice.drt.analytics.prediction.dump.{ModelPredictionsDump, NoOpDump, PaxPredictionDump}
-import uk.gov.homeoffice.drt.analytics.prediction.flights.{ArrivalValueExtraction, ArrivalsProvider, ValuesExtractor}
-import uk.gov.homeoffice.drt.analytics.prediction.modeldefinitions.{OffScheduleModelDefinition, PaxCapModelDefinition, ToChoxModelDefinition, WalkTimeModelDefinition}
-import uk.gov.homeoffice.drt.analytics.prediction.{FlightRouteValuesTrainer, ModelDefinition}
-import uk.gov.homeoffice.drt.analytics.services.ArrivalsHelper.{noopPreProcess, populateMaxPax}
+import uk.gov.homeoffice.drt.analytics.prediction.dump.{ ModelPredictionsDump, NoOpDump, PaxPredictionDump }
+import uk.gov.homeoffice.drt.analytics.prediction.flights.{ ArrivalValueExtraction, ArrivalsProvider, ValuesExtractor }
+import uk.gov.homeoffice.drt.analytics.prediction.modeldefinitions.{
+  OffScheduleModelDefinition,
+  PaxCapModelDefinition,
+  ToChoxModelDefinition,
+  WalkTimeModelDefinition
+}
+import uk.gov.homeoffice.drt.analytics.prediction.{ FlightRouteValuesTrainer, ModelDefinition }
+import uk.gov.homeoffice.drt.analytics.services.ArrivalsHelper.{ noopPreProcess, populateMaxPax }
 import uk.gov.homeoffice.drt.arrivals.Arrival
 import uk.gov.homeoffice.drt.db.AggregatedDbTables
 import uk.gov.homeoffice.drt.db.dao.FlightDao
 import uk.gov.homeoffice.drt.notifications.SlackClient
 import uk.gov.homeoffice.drt.ports.Terminals.Terminal
-import uk.gov.homeoffice.drt.ports.{AirportConfig, PortCode}
+import uk.gov.homeoffice.drt.ports.{ AirportConfig, PortCode }
 import uk.gov.homeoffice.drt.prediction.ModelPersistence
-import uk.gov.homeoffice.drt.time.{LocalDate, UtcDate}
+import uk.gov.homeoffice.drt.time.{ LocalDate, UtcDate }
 
-import java.nio.file.{Files, Paths}
-import scala.concurrent.{ExecutionContext, Future}
+import java.nio.file.{ Files, Paths }
+import scala.concurrent.{ ExecutionContext, Future }
 
-case class JobExecutor(config: Config,
-                       portCode: PortCode,
-                       predictionWriters: Iterable[(String, String) => Future[Done]],
-                       persistence: ModelPersistence,
-                       aggregatedDb: AggregatedDbTables,
-                       slackClient: SlackClient,
-                      )
-                      (implicit ec: ExecutionContext, timeout: Timeout, system: ActorSystem) {
+case class JobExecutor(
+    config: Config,
+    portCode: PortCode,
+    predictionWriters: Iterable[(String, String) => Future[Done]],
+    persistence: ModelPersistence,
+    aggregatedDb: AggregatedDbTables,
+    slackClient: SlackClient
+)(implicit ec: ExecutionContext, timeout: Timeout, system: ActorSystem) {
   private val log: Logger = LoggerFactory.getLogger(getClass)
 
   private val daysOfTrainingData = config.getInt("options.training.days-of-data")
@@ -42,11 +47,27 @@ case class JobExecutor(config: Config,
         PassengerCounts.updateForPort(portConfig, daysToLookBack)
 
       case "update-off-schedule-models" =>
-        trainModels(OffScheduleModelDefinition, portCode.iata, portConfig.terminalsForDateRange, noopPreProcess, 0.1, 0.9, NoOpDump)
+        trainModels(
+          OffScheduleModelDefinition,
+          portCode.iata,
+          portConfig.terminalsForDateRange,
+          noopPreProcess,
+          0.1,
+          0.9,
+          NoOpDump
+        )
 
       case "update-to-chox-models" =>
         val baselineTimeToChox = portConfig.timeToChoxMillis / 60000
-        trainModels(ToChoxModelDefinition(baselineTimeToChox), portCode.iata, portConfig.terminalsForDateRange, noopPreProcess, 0.1, 0.9, NoOpDump)
+        trainModels(
+          ToChoxModelDefinition(baselineTimeToChox),
+          portCode.iata,
+          portConfig.terminalsForDateRange,
+          noopPreProcess,
+          0.1,
+          0.9,
+          NoOpDump
+        )
 
       case "update-walk-time-models" =>
         val gatesPath = config.getString("options.gates-walk-time-file-path")
@@ -66,7 +87,15 @@ case class JobExecutor(config: Config,
           if (predictionWriters.nonEmpty)
             PaxPredictionDump(ArrivalsProvider().arrivals, predictionWriters)
           else NoOpDump
-        trainModels(PaxCapModelDefinition, portCode.iata, portConfig.terminalsForDateRange, populateMaxPax(), 0d, 1d, paxPredictionsDumper)
+        trainModels(
+          PaxCapModelDefinition,
+          portCode.iata,
+          portConfig.terminalsForDateRange,
+          populateMaxPax(),
+          0d,
+          1d,
+          paxPredictionsDumper
+        )
 
       case unknown =>
         log.error(s"Unknown job name '$unknown'")
@@ -76,22 +105,29 @@ case class JobExecutor(config: Config,
 
   private def fileExists(path: String): Boolean = path.nonEmpty && Files.exists(Paths.get(path))
 
-  private def trainModels(modDef: ModelDefinition[Arrival, Terminal],
-                          portCode: String,
-                          terminals: (LocalDate, LocalDate) => Iterable[Terminal],
-                          preProcess: (UtcDate, Iterable[Arrival]) => Future[Iterable[Arrival]],
-                          lowerQuantile: Double,
-                          upperQuantile: Double,
-                          dumpStats: ModelPredictionsDump,
-                         ): Future[Done] = {
+  private def trainModels(
+      modDef: ModelDefinition[Arrival, Terminal],
+      portCode: String,
+      terminals: (LocalDate, LocalDate) => Iterable[Terminal],
+      preProcess: (UtcDate, Iterable[Arrival]) => Future[Iterable[Arrival]],
+      lowerQuantile: Double,
+      upperQuantile: Double,
+      dumpStats: ModelPredictionsDump
+  ): Future[Done] = {
     val arrivalsForDateAndTerminal: (UtcDate, Terminal) => Future[Seq[Arrival]] =
-      (date, terminal) => aggregatedDb.run(
-        FlightDao().getForTerminalsUtcDate(PortCode(portCode))(Seq(terminal), date)
-          .map(_.map(_.apiFlight))
-      )
+      (date, terminal) =>
+        aggregatedDb.run(
+          FlightDao().getForTerminalsUtcDate(PortCode(portCode))(Seq(terminal), date)
+            .map(_.map(_.apiFlight))
+        )
 
     val extraction: (UtcDate, Terminal) => Future[Map[WithId, Iterable[(Double, Seq[String], Seq[Double], String)]]] =
-      ArrivalValueExtraction(arrivalsForDateAndTerminal, modDef.targetValueAndFeatures, modDef.aggregateValue, preProcess)
+      ArrivalValueExtraction(
+        arrivalsForDateAndTerminal,
+        modDef.targetValueAndFeatures,
+        modDef.aggregateValue,
+        preProcess
+      )
 
     val examplesProvider = ValuesExtractor(extraction).extractValuesByKey
 
@@ -107,7 +143,7 @@ case class JobExecutor(config: Config,
       persistence = persistence,
       dumper = dumpStats,
       terminals = terminals,
-      slackClient = slackClient,
+      slackClient = slackClient
     )
 
     trainer
@@ -117,6 +153,5 @@ case class JobExecutor(config: Config,
         d
       }
   }
-
 
 }

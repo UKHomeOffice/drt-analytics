@@ -1,4 +1,4 @@
-import net.nmoncho.sbt.dependencycheck.settings.{AnalyzerSettings, NvdApiSettings}
+import net.nmoncho.sbt.dependencycheck.settings.{ AnalyzerSettings, NvdApiSettings }
 
 ThisBuild / scalaVersion := "2.13.18"
 ThisBuild / version := "v" + sys.env.getOrElse("DRONE_BUILD_NUMBER", sys.env.getOrElse("BUILD_ID", "DEV"))
@@ -13,7 +13,8 @@ lazy val root = (project in file("."))
     name := "drt-analytics",
     trapExit := false,
     libraryDependencies ++= AppDependencies.all,
-    resolvers += "Artifactory Realm libs release" at "https://artifactory.digital.homeoffice.gov.uk/artifactory/libs-release/",
+    resolvers +=
+      "Artifactory Realm libs release" at "https://artifactory.digital.homeoffice.gov.uk/artifactory/libs-release/",
     credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
     dockerBaseImage := "openjdk:11-jre-slim-buster",
     assembly / assemblyMergeStrategy := {

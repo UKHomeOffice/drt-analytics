@@ -3,13 +3,18 @@ package uk.gov.homeoffice.drt.analytics.actors
 import org.apache.pekko.actor.Props
 import org.apache.pekko.persistence._
 import org.joda.time.DateTimeZone
-import org.slf4j.{Logger, LoggerFactory}
+import org.slf4j.{ Logger, LoggerFactory }
 import uk.gov.homeoffice.drt.analytics.messages.MessageConversion
-import uk.gov.homeoffice.drt.analytics.{Arrivals, SimpleArrival}
+import uk.gov.homeoffice.drt.analytics.{ Arrivals, SimpleArrival }
 import uk.gov.homeoffice.drt.arrivals.UniqueArrival
 import uk.gov.homeoffice.drt.ports.PortCode
-import uk.gov.homeoffice.drt.protobuf.messages.FlightsMessage.{FeedStatusMessage, FlightMessage, FlightStateSnapshotMessage, FlightsDiffMessage}
-import uk.gov.homeoffice.drt.time.{SDate, SDateLike}
+import uk.gov.homeoffice.drt.protobuf.messages.FlightsMessage.{
+  FeedStatusMessage,
+  FlightMessage,
+  FlightStateSnapshotMessage,
+  FlightsDiffMessage
+}
+import uk.gov.homeoffice.drt.time.{ SDate, SDateLike }
 
 import scala.collection.mutable
 
@@ -33,7 +38,14 @@ class ArrivalsActor(val persistenceId: String, date: SDateLike) extends Persiste
 
     case FlightsDiffMessage(Some(createdAt), removals, updates, _) =>
       if (createdAt <= pointInTime.millisSinceEpoch) {
-        arrivals --= removals.map(m => UniqueArrival(m.number.getOrElse(0), m.terminalName.getOrElse(""), m.scheduled.getOrElse(0L), m.origin.getOrElse("")))
+        arrivals --= removals.map(m =>
+          UniqueArrival(
+            m.number.getOrElse(0),
+            m.terminalName.getOrElse(""),
+            m.scheduled.getOrElse(0L),
+            m.origin.getOrElse("")
+          )
+        )
         val incomingUpdates = simpleArrivalsFromMessages(updates).map(a => (a.uniqueArrival, a))
         arrivals ++= incomingUpdates
       }

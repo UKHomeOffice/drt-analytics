@@ -2,12 +2,16 @@ package uk.gov.homeoffice.drt.analytics.actors
 
 import org.apache.pekko.actor.ActorRef
 import org.apache.pekko.persistence._
-import org.slf4j.{Logger, LoggerFactory}
+import org.slf4j.{ Logger, LoggerFactory }
 import scalapb.GeneratedMessage
 import uk.gov.homeoffice.drt.actor.RecoveryActorLike
 import uk.gov.homeoffice.drt.analytics.OriginTerminalDailyPaxCountsOnDay
 import uk.gov.homeoffice.drt.analytics.actors.PassengersActor.relevantPaxCounts
-import uk.gov.homeoffice.drt.protobuf.messages.PaxMessage.{OriginTerminalPaxCountsMessage, OriginTerminalPaxCountsMessages, PaxCountMessage}
+import uk.gov.homeoffice.drt.protobuf.messages.PaxMessage.{
+  OriginTerminalPaxCountsMessage,
+  OriginTerminalPaxCountsMessages,
+  PaxCountMessage
+}
 import uk.gov.homeoffice.drt.time.SDateLike
 
 case class PointInTimeOriginTerminalDay(pointInTime: Long, origin: String, terminal: String, day: Long)
@@ -19,7 +23,10 @@ case object ClearState
 case object Ack
 
 object PassengersActor {
-  def relevantPaxCounts(numDaysInAverage: Int, now: () => SDateLike)(paxCountMessages: Seq[PaxCountMessage]): Seq[PaxCountMessage] = {
+  def relevantPaxCounts(
+      numDaysInAverage: Int,
+      now: () => SDateLike
+  )(paxCountMessages: Seq[PaxCountMessage]): Seq[PaxCountMessage] = {
     val cutoff = now().getLocalLastMidnight.addDays(-1 * numDaysInAverage).millisSinceEpoch
     paxCountMessages.filter(msg => msg.getDay >= cutoff)
   }
@@ -51,22 +58,27 @@ class PassengersActor(val now: () => SDateLike, daysToRetain: Int) extends Recov
     val relevantPaxCounts = filterRelevantPaxCounts(countMessages)
     val updatesForOriginTerminal = messagesToUpdates(relevantPaxCounts)
     val originAndTerminal = OriginAndTerminal(origin, terminal)
-    val updatedOriginTerminal = originTerminalPaxNosState.getOrElse(originAndTerminal, Map()) ++ updatesForOriginTerminal
+    val updatedOriginTerminal = originTerminalPaxNosState.getOrElse(originAndTerminal, Map()) ++
+      updatesForOriginTerminal
     updateState(origin, terminal, updatedOriginTerminal)
   }
 
   override def processSnapshotMessage: PartialFunction[Any, Unit] = {
     case OriginTerminalPaxCountsMessages(messages) => messages.map { message =>
-      applyPaxCountMessages(message.getOrigin, message.getTerminal, message.counts)
-    }
+        applyPaxCountMessages(message.getOrigin, message.getTerminal, message.counts)
+      }
   }
 
   override def stateToMessage: GeneratedMessage = OriginTerminalPaxCountsMessages(
     originTerminalPaxNosState.map {
       case (OriginAndTerminal(origin, terminal), stuff) =>
-        OriginTerminalPaxCountsMessage(Option(origin), Option(terminal), updatesToMessages(stuff.map {
-          case ((a, b), c) => (a, b, c)
-        }))
+        OriginTerminalPaxCountsMessage(
+          Option(origin),
+          Option(terminal),
+          updatesToMessages(stuff.map {
+            case ((a, b), c) => (a, b, c)
+          })
+        )
     }.toSeq
   )
 
@@ -80,7 +92,9 @@ class PassengersActor(val now: () => SDateLike, daysToRetain: Int) extends Recov
       sender() ! Ack
 
     case originTerminalPaxNosForDay: OriginTerminalDailyPaxCountsOnDay =>
-      log.debug(s"Received OriginTerminalDailyPaxCountsOnDay with ${originTerminalPaxNosForDay.counts.dailyPax.size} updates")
+      log.debug(
+        s"Received OriginTerminalDailyPaxCountsOnDay with ${originTerminalPaxNosForDay.counts.dailyPax.size} updates"
+      )
       persistDiffAndUpdateState(originTerminalPaxNosForDay, sender())
 
     case oAndT: OriginAndTerminal =>
@@ -98,8 +112,10 @@ class PassengersActor(val now: () => SDateLike, daysToRetain: Int) extends Recov
       log.info(s"Got unexpected command: $u")
   }
 
-  private def persistDiffAndUpdateState(originTerminalPaxNosForDay: OriginTerminalDailyPaxCountsOnDay,
-                                        replyTo: ActorRef): Unit = {
+  private def persistDiffAndUpdateState(
+      originTerminalPaxNosForDay: OriginTerminalDailyPaxCountsOnDay,
+      replyTo: ActorRef
+  ): Unit = {
     val origin = originTerminalPaxNosForDay.origin
     val terminal = originTerminalPaxNosForDay.terminal
     val existingForOriginTerminal = originTerminalPaxNosState.getOrElse(OriginAndTerminal(origin, terminal), Map())

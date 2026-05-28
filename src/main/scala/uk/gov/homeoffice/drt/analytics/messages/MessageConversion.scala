@@ -15,7 +15,7 @@ object MessageConversion {
 
     val (carrierCode: String, voyageNumber: Int) = flightNumber match {
       case flightCodeRegex(cc, vn, _) => (cc, vn.toInt)
-      case _ => ("", 0)
+      case _                          => ("", 0)
     }
 
     SimpleArrival(
@@ -26,7 +26,7 @@ object MessageConversion {
       origin = fm.origin.getOrElse(""),
       status = fm.status.getOrElse(""),
       passengerSources = FlightMessageConversion.getPassengerSources(fm),
-      maxPax = fm.maxPax,
+      maxPax = fm.maxPax
     )
   }
 }
