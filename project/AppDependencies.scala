@@ -7,7 +7,7 @@ object AppDependencies {
 
   val compileDependencies: Seq[ModuleID] = Seq(
     "org.apache.pekko"       %% "pekko-slf4j"             % pekkoVersion,
-    "ch.qos.logback"          % "logback-classic"         % "1.5.33",
+    "ch.qos.logback"          % "logback-classic"         % "1.5.34",
     "ch.qos.logback.contrib"  % "logback-json-classic"    % "0.1.5",
     "ch.qos.logback.contrib"  % "logback-jackson"         % "0.1.5",
     "org.apache.spark"       %% "spark-mllib"             % sparkVersion,
@@ -21,9 +21,9 @@ object AppDependencies {
     "org.apache.pekko"       %% "pekko-persistence-jdbc"  % "1.2.0",
     "org.postgresql"          % "postgresql"              % "42.7.11",
     "joda-time"               % "joda-time"               % "2.14.2",
-    "uk.gov.homeoffice"      %% "drt-lib"                 % "vDEV",
+    "uk.gov.homeoffice"      %% "drt-lib"                 % "v1410",
     "org.typelevel"          %% "cats-core"               % "2.13.0",
-    "software.amazon.awssdk"  % "s3"                      % "2.30.38",
+    "software.amazon.awssdk"  % "s3"                      % "2.45.1",
     "com.typesafe"           %% "ssl-config-core"         % "0.7.1",
     "dev.ludovic.netlib"      % "blas"                    % netlibVersion,
     "dev.ludovic.netlib"      % "lapack"                  % netlibVersion,

@@ -9,8 +9,10 @@ object SbtUpdatesSettings {
   val sbtUpdatesSettings: Seq[Def.Setting[?]] = Seq(
     dependencyUpdatesFailBuild := false,
     dependencyUpdatesFilter -= moduleFilter("org.scala-lang"),
-    dependencyUpdatesFilter -= moduleFilter("org.apache.pekko")
-    // Pekko updates are intentionally reviewed manually because they are higher risk in this repo.
+    dependencyUpdatesFilter -= moduleFilter("org.apache.pekko"),
+    dependencyUpdatesFilter -= moduleFilter("org.apache.spark"),
+    dependencyUpdatesFilter -= moduleFilter("dev.ludovic.netlib") // for manual review
+    // Pekko and Spark updates are intentionally reviewed manually because they are higher risk in this repo.
     // Keep them out of the default dependencyUpdates output so the report stays focused on lower-risk upgrades.
   )
 }
