@@ -5,25 +5,35 @@ import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.homeoffice.drt.analytics.actors.TerminalDateActor.ArrivalKey
 import uk.gov.homeoffice.drt.arrivals._
 import uk.gov.homeoffice.drt.ports.SplitRatiosNs.SplitSources
-import uk.gov.homeoffice.drt.ports.Terminals.{T1, T2}
+import uk.gov.homeoffice.drt.ports.Terminals.{ T1, T2 }
 import uk.gov.homeoffice.drt.ports._
-import uk.gov.homeoffice.drt.protobuf.messages.CrunchState.{FlightWithSplitsMessage, FlightsWithSplitsDiffMessage, FlightsWithSplitsMessage}
-import uk.gov.homeoffice.drt.protobuf.messages.FlightsMessage.{FlightsDiffMessage, UniqueArrivalMessage}
-import uk.gov.homeoffice.drt.protobuf.serialisation.FlightMessageConversion.{flightMessageToApiFlight, flightWithSplitsToMessage, splitsForArrivalsToMessage}
-import uk.gov.homeoffice.drt.time.{SDate, UtcDate}
+import uk.gov.homeoffice.drt.protobuf.messages.CrunchState.{
+  FlightWithSplitsMessage,
+  FlightsWithSplitsDiffMessage,
+  FlightsWithSplitsMessage
+}
+import uk.gov.homeoffice.drt.protobuf.messages.FlightsMessage.{ FlightsDiffMessage, UniqueArrivalMessage }
+import uk.gov.homeoffice.drt.protobuf.serialisation.FlightMessageConversion.{
+  flightMessageToApiFlight,
+  flightWithSplitsToMessage,
+  splitsForArrivalsToMessage
+}
+import uk.gov.homeoffice.drt.time.{ SDate, UtcDate }
 
 class FlightActorLikeSpec extends AnyWordSpec with Matchers {
   val scheduled = "2020-01-01T00:00"
   val arrival1: Arrival = ArrivalGenerator.arrival(iata = "BA0001", terminal = T1, schDt = scheduled).copy(
     PassengerSources = Map(UnknownFeedSource -> Passengers(None, None)),
-    PcpTime = None,
+    PcpTime = None
   )
-  val flightWithSplitsMessage1: FlightWithSplitsMessage = flightWithSplitsToMessage(ApiFlightWithSplits(arrival1, Set()))
+  val flightWithSplitsMessage1: FlightWithSplitsMessage =
+    flightWithSplitsToMessage(ApiFlightWithSplits(arrival1, Set()))
   val arrival2: Arrival = ArrivalGenerator.arrival(iata = "BA2222", terminal = T2, schDt = scheduled).copy(
     PassengerSources = Map(UnknownFeedSource -> Passengers(None, None)),
-    PcpTime = None,
+    PcpTime = None
   )
-  val flightWithSplitsMessage2: FlightWithSplitsMessage = flightWithSplitsToMessage(ApiFlightWithSplits(arrival2, Set()))
+  val flightWithSplitsMessage2: FlightWithSplitsMessage =
+    flightWithSplitsToMessage(ApiFlightWithSplits(arrival2, Set()))
 
   "processSnapshot" should {
     val actorLike = newMock(None, UtcDate(2023, 6, 22))
@@ -54,8 +64,17 @@ class FlightActorLikeSpec extends AnyWordSpec with Matchers {
     val actorLike = newMock(None, UtcDate(2023, 6, 22))
     "add and remove flights contained in a FlightsWithSplitsMessage" in {
       actorLike.byArrivalKey = Map(ArrivalKey(arrival1) -> arrival1)
-      val removeArrival1AddArrival2 = FlightsWithSplitsDiffMessage(Option(1L), Seq(uniqueArrivalMessage(arrival1)), scala.Seq(flightWithSplitsMessage2))
-      actorLike.processUpdatesAndRemovals(removeArrival1AddArrival2.createdAt.get, removeArrival1AddArrival2.updates, removeArrival1AddArrival2.removals, actorLike.deserialiseFwsMsg)
+      val removeArrival1AddArrival2 = FlightsWithSplitsDiffMessage(
+        Option(1L),
+        Seq(uniqueArrivalMessage(arrival1)),
+        scala.Seq(flightWithSplitsMessage2)
+      )
+      actorLike.processUpdatesAndRemovals(
+        removeArrival1AddArrival2.createdAt.get,
+        removeArrival1AddArrival2.updates,
+        removeArrival1AddArrival2.removals,
+        actorLike.deserialiseFwsMsg
+      )
       actorLike.byArrivalKey should ===(Map(ArrivalKey(arrival2) -> arrival2))
     }
   }
@@ -69,8 +88,14 @@ class FlightActorLikeSpec extends AnyWordSpec with Matchers {
       val removeArrival1AddArrival2 = FlightsWithSplitsDiffMessage(
         createdAtLaterThanRecovery,
         Seq(uniqueArrivalMessage(arrival1)),
-        scala.Seq(flightWithSplitsMessage2))
-      actorLike.processUpdatesAndRemovals(removeArrival1AddArrival2.createdAt.get, removeArrival1AddArrival2.updates, removeArrival1AddArrival2.removals, actorLike.deserialiseFwsMsg)
+        scala.Seq(flightWithSplitsMessage2)
+      )
+      actorLike.processUpdatesAndRemovals(
+        removeArrival1AddArrival2.createdAt.get,
+        removeArrival1AddArrival2.updates,
+        removeArrival1AddArrival2.removals,
+        actorLike.deserialiseFwsMsg
+      )
       actorLike.byArrivalKey should ===(Map(ArrivalKey(arrival1) -> arrival1))
     }
   }
@@ -79,8 +104,17 @@ class FlightActorLikeSpec extends AnyWordSpec with Matchers {
     val actorLike = newMock(None, UtcDate(2023, 6, 22))
     "add and remove flights contained in a FlightsDiffMessage" in {
       actorLike.byArrivalKey = Map(ArrivalKey(arrival1) -> arrival1)
-      val removeArrival1AddArrival2 = FlightsDiffMessage(Option(1L), Seq(uniqueArrivalMessage(arrival1)), scala.Seq(flightWithSplitsMessage2.getFlight))
-      actorLike.processUpdatesAndRemovals(removeArrival1AddArrival2.createdAt.get, removeArrival1AddArrival2.updates, removeArrival1AddArrival2.removals, flightMessageToApiFlight)
+      val removeArrival1AddArrival2 = FlightsDiffMessage(
+        Option(1L),
+        Seq(uniqueArrivalMessage(arrival1)),
+        scala.Seq(flightWithSplitsMessage2.getFlight)
+      )
+      actorLike.processUpdatesAndRemovals(
+        removeArrival1AddArrival2.createdAt.get,
+        removeArrival1AddArrival2.updates,
+        removeArrival1AddArrival2.removals,
+        flightMessageToApiFlight
+      )
       actorLike.byArrivalKey should ===(Map(ArrivalKey(arrival2) -> arrival2))
     }
   }
@@ -94,8 +128,14 @@ class FlightActorLikeSpec extends AnyWordSpec with Matchers {
       val removeArrival1AddArrival2 = FlightsDiffMessage(
         createdAtLaterThanRecovery,
         Seq(uniqueArrivalMessage(arrival1)),
-        scala.Seq(flightWithSplitsMessage2.getFlight))
-      actorLike.processUpdatesAndRemovals(removeArrival1AddArrival2.createdAt.get, removeArrival1AddArrival2.updates, removeArrival1AddArrival2.removals, flightMessageToApiFlight)
+        scala.Seq(flightWithSplitsMessage2.getFlight)
+      )
+      actorLike.processUpdatesAndRemovals(
+        removeArrival1AddArrival2.createdAt.get,
+        removeArrival1AddArrival2.updates,
+        removeArrival1AddArrival2.removals,
+        flightMessageToApiFlight
+      )
       actorLike.byArrivalKey should ===(Map(ArrivalKey(arrival1) -> arrival1))
     }
   }
@@ -113,7 +153,7 @@ class FlightActorLikeSpec extends AnyWordSpec with Matchers {
       actorLike.processSplitsDiff(splitsForArrivalsToMessage(apiSplits, 1L))
       actorLike.byArrivalKey should ===(Map(ArrivalKey(arrival1) -> arrival1.copy(
         FeedSources = arrival1.FeedSources + ApiFeedSource,
-        PassengerSources = arrival1.PassengerSources + (ApiFeedSource -> Passengers(Option(50), Option(0))),
+        PassengerSources = arrival1.PassengerSources + (ApiFeedSource -> Passengers(Option(50), Option(0)))
       )))
     }
   }

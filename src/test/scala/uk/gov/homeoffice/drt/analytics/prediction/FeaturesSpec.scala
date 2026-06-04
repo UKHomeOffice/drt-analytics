@@ -6,8 +6,8 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.homeoffice.drt.prediction.FeaturesWithOneToManyValues
-import uk.gov.homeoffice.drt.prediction.arrival.features.FeatureColumnsV1.{Carrier, DayOfWeek}
-import uk.gov.homeoffice.drt.time.{SDate, SDateLike}
+import uk.gov.homeoffice.drt.prediction.arrival.features.FeatureColumnsV1.{ Carrier, DayOfWeek }
+import uk.gov.homeoffice.drt.time.{ SDate, SDateLike }
 
 class FeaturesSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll {
   implicit val session: SparkSession = SparkSession
@@ -51,7 +51,8 @@ class FeaturesSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll {
     "return an appropriate feature vector for 2 one to many features" in {
       implicit val sdateProvider: Long => SDateLike = (ts: Long) => SDate(ts)
       val featureTypes = List(Carrier, DayOfWeek())
-      val features = FeaturesWithOneToManyValues(featureTypes, IndexedSeq("ab_1", "ab_1", "ab_2", "ab_2", "zb_s", "zb_t"))
+      val features =
+        FeaturesWithOneToManyValues(featureTypes, IndexedSeq("ab_1", "ab_1", "ab_2", "ab_2", "zb_s", "zb_t"))
 
       val row = List(("ab_2", "zb_s")).toDF(List("carrier", "dayOfTheWeek"): _*).collect().head
 

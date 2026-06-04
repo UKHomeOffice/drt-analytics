@@ -1,12 +1,12 @@
 package uk.gov.homeoffice.drt.analytics.prediction
 
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.{Sink, Source}
-import org.apache.pekko.{Done, NotUsed}
+import org.apache.pekko.stream.scaladsl.{ Sink, Source }
+import org.apache.pekko.{ Done, NotUsed }
 import org.apache.spark.ml.regression.LinearRegressionModel
 import org.apache.spark.mllib.evaluation.RegressionMetrics
-import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.sql.types.{ DoubleType, StringType, StructField, StructType }
+import org.apache.spark.sql.{ Dataset, Row, SparkSession }
 import org.slf4j.LoggerFactory
 import uk.gov.homeoffice.drt.actor.PredictionModelActor.WithId
 import uk.gov.homeoffice.drt.analytics.prediction.FlightRouteValuesTrainer.ModelExamplesProvider
@@ -16,32 +16,33 @@ import uk.gov.homeoffice.drt.ports.Terminals.Terminal
 import uk.gov.homeoffice.drt.ports._
 import uk.gov.homeoffice.drt.prediction.ModelPersistence
 import uk.gov.homeoffice.drt.prediction.arrival.features.Feature
-import uk.gov.homeoffice.drt.time.{LocalDate, SDate, SDateLike}
+import uk.gov.homeoffice.drt.time.{ LocalDate, SDate, SDateLike }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 object FlightRouteValuesTrainer {
-  type ModelExamplesProvider[MI] = (Terminal, SDateLike, Int) => Source[(MI, Iterable[(Double, Seq[String], Seq[Double], String)]), NotUsed]
+  type ModelExamplesProvider[MI] =
+    (Terminal, SDateLike, Int) => Source[(MI, Iterable[(Double, Seq[String], Seq[Double], String)]), NotUsed]
 }
 
-case class FlightRouteValuesTrainer(modelName: String,
-                                    featuresVersion: Int,
-                                    features: List[Feature[_]],
-                                    examplesProvider: ModelExamplesProvider[WithId],
-                                    baselineValue: Terminal => Double,
-                                    daysOfTrainingData: Int,
-                                    lowerQuantile: Double,
-                                    upperQuantile: Double,
-                                    persistence: ModelPersistence,
-                                    dumper: ModelPredictionsDump,
-                                    terminals: (LocalDate, LocalDate) => Iterable[Terminal],
-                                    slackClient: SlackClient,
-                                   )
-                                   (implicit
-                                    executionContext: ExecutionContext,
-                                    mat: Materializer,
-                                   ) {
+case class FlightRouteValuesTrainer(
+    modelName: String,
+    featuresVersion: Int,
+    features: List[Feature[_]],
+    examplesProvider: ModelExamplesProvider[WithId],
+    baselineValue: Terminal => Double,
+    daysOfTrainingData: Int,
+    lowerQuantile: Double,
+    upperQuantile: Double,
+    persistence: ModelPersistence,
+    dumper: ModelPredictionsDump,
+    terminals: (LocalDate, LocalDate) => Iterable[Terminal],
+    slackClient: SlackClient
+)(implicit
+    executionContext: ExecutionContext,
+    mat: Materializer
+) {
   private val log = LoggerFactory.getLogger(getClass)
 
   implicit val session: SparkSession = SparkSession
@@ -77,11 +78,12 @@ case class FlightRouteValuesTrainer(modelName: String,
     log.info(s"Terminal ${terminal.toString}: $total total, $modelCount models")
   }
 
-  private def train(daysOfData: Int,
-                    validationSetPct: Int,
-                    portCode: String,
-                    terminal: Terminals.Terminal,
-                   ): Future[Seq[Option[Double]]] = {
+  private def train(
+      daysOfData: Int,
+      validationSetPct: Int,
+      portCode: String,
+      terminal: Terminals.Terminal
+  ): Future[Seq[Option[Double]]] = {
 
     val start = SDate.now().addDays(-1)
 
@@ -89,7 +91,9 @@ case class FlightRouteValuesTrainer(modelName: String,
 
     val trainingSetPct = 100 - validationSetPct
 
-    log.info(s"Training $modelName for $terminal with $daysOfData days of data, $trainingSetPct% training, $validationSetPct% validation")
+    log.info(
+      s"Training $modelName for $terminal with $daysOfData days of data, $trainingSetPct% training, $validationSetPct% validation"
+    )
 
     examplesProvider(terminal, start, daysOfData)
       .mapAsync(1) {
@@ -101,27 +105,40 @@ case class FlightRouteValuesTrainer(modelName: String,
               persistence.clear(modelIdentifier, modelName).map(_ => None)
 
             case withoutOutliers =>
-              log.info(s"Training $modelName for $modelIdentifier with ${withoutOutliers.count()} out of ${allExamples.size} examples after outlier removal")
+              log.info(
+                s"Training $modelName for $modelIdentifier with ${withoutOutliers.count()} out of ${allExamples.size} examples after outlier removal"
+              )
               val trainingExamples = (allExamples.size.toDouble * (trainingSetPct.toDouble / 100)).toInt
               val dataSet = DataSet(withoutOutliers, features).shuffle()
               val lrModel: LinearRegressionModel = dataSet.trainModel("label", trainingSetPct)
-              val improvementPct = calculateImprovementPct(dataSet, allExamples, lrModel, validationSetPct, baselineValue(terminal))
+              val improvementPct =
+                calculateImprovementPct(dataSet, allExamples, lrModel, validationSetPct, baselineValue(terminal))
               for {
-                _ <- persistence.persist(modelIdentifier, featuresVersion, lrModel, dataSet.featuresWithOneToManyValues, trainingExamples, improvementPct, modelName)
-                _ <- dumper.dumpDailyStats(dataSet, allExamples, lrModel, portCode, terminal.toString).map(_ => Option(improvementPct))
+                _ <- persistence.persist(
+                  modelIdentifier,
+                  featuresVersion,
+                  lrModel,
+                  dataSet.featuresWithOneToManyValues,
+                  trainingExamples,
+                  improvementPct,
+                  modelName
+                )
+                _ <- dumper.dumpDailyStats(dataSet, allExamples, lrModel, portCode, terminal.toString).map(_ =>
+                  Option(improvementPct)
+                )
               } yield Option(improvementPct)
           }
       }
       .runWith(Sink.seq)
   }
 
-  private def calculateImprovementPct(dataSet: DataSet,
-                                      withIndex: Iterable[(Double, Seq[String], Seq[Double], String)],
-                                      model: LinearRegressionModel,
-                                      validationSetPct: Int,
-                                      baselineValue: Double,
-                                     )
-                                     (implicit session: SparkSession): Double = {
+  private def calculateImprovementPct(
+      dataSet: DataSet,
+      withIndex: Iterable[(Double, Seq[String], Seq[Double], String)],
+      model: LinearRegressionModel,
+      validationSetPct: Int,
+      baselineValue: Double
+  )(implicit session: SparkSession): Double = {
     val labelsAndPredictions = dataSet
       .predict("label", validationSetPct, model)
       .rdd
@@ -153,8 +170,10 @@ case class FlightRouteValuesTrainer(modelName: String,
     pctImprovement
   }
 
-  private def prepareDataFrame(featureColumnNames: Seq[String], valuesZippedWithIndex: Iterable[(Double, Seq[String], Seq[Double], String)])
-                              (implicit session: SparkSession): Dataset[Row] = {
+  private def prepareDataFrame(
+      featureColumnNames: Seq[String],
+      valuesZippedWithIndex: Iterable[(Double, Seq[String], Seq[Double], String)]
+  )(implicit session: SparkSession): Dataset[Row] = {
     val labelField = StructField("label", DoubleType, nullable = false)
     val indexField = StructField("index", StringType, nullable = false)
 

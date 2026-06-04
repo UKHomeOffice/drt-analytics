@@ -1,6 +1,6 @@
 package uk.gov.homeoffice.drt.analytics.prediction
 
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{ DataFrame, SparkSession }
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -16,7 +16,7 @@ object MockData {
       (1d, 1d, "1d", "1"),
       (2d, 1d, "2d", "2"),
       (2d, 2d, "3d", "3"),
-      (4d, 2d, "4d", "4"),
+      (4d, 2d, "4d", "4")
     ).toDF(colNames: _*)
   }
 }

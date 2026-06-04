@@ -1,21 +1,20 @@
 package uk.gov.homeoffice.drt.analytics.prediction.flights
 
-import org.apache.pekko.actor.{ActorSystem, PoisonPill, Props}
+import org.apache.pekko.actor.{ ActorSystem, PoisonPill, Props }
 import org.apache.pekko.pattern.ask
 import org.apache.pekko.stream.Materializer
-import org.apache.pekko.stream.scaladsl.{Sink, Source}
+import org.apache.pekko.stream.scaladsl.{ Sink, Source }
 import org.apache.pekko.util.Timeout
 import org.slf4j.LoggerFactory
 import uk.gov.homeoffice.drt.actor.commands.Commands.GetState
 import uk.gov.homeoffice.drt.analytics.services.ArrivalsHelper.populateMaxPax
 import uk.gov.homeoffice.drt.arrivals.Arrival
 import uk.gov.homeoffice.drt.ports.Terminals.Terminal
-import uk.gov.homeoffice.drt.time.{LocalDate, SDate, UtcDate}
+import uk.gov.homeoffice.drt.time.{ LocalDate, SDate, UtcDate }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
-case class ArrivalsProvider()
-                           (implicit ec: ExecutionContext, timeout: Timeout, mat: Materializer, system: ActorSystem) {
+case class ArrivalsProvider()(implicit ec: ExecutionContext, timeout: Timeout, mat: Materializer, system: ActorSystem) {
   private val log = LoggerFactory.getLogger(getClass)
 
   val arrivals: (Terminal, LocalDate) => Future[Seq[Arrival]] = (terminal, localDate) => {

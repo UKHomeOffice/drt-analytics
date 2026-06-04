@@ -4,17 +4,28 @@ import org.apache.pekko.Done
 import org.apache.spark.ml.regression.LinearRegressionModel
 import org.slf4j.LoggerFactory
 import uk.gov.homeoffice.drt.actor.PredictionModelActor
-import uk.gov.homeoffice.drt.prediction.{FeaturesWithOneToManyValues, ModelPersistence}
+import uk.gov.homeoffice.drt.prediction.{ FeaturesWithOneToManyValues, ModelPersistence }
 
 import scala.concurrent.Future
 
 object NoOpPersistence extends ModelPersistence {
   private val log = LoggerFactory.getLogger(getClass)
 
-  override def getModels(validModelNames: Seq[String], maybePointInTime: Option[Long]): PredictionModelActor.WithId => Future[PredictionModelActor.Models] =
+  override def getModels(
+      validModelNames: Seq[String],
+      maybePointInTime: Option[Long]
+  ): PredictionModelActor.WithId => Future[PredictionModelActor.Models] =
     _ => Future.successful(PredictionModelActor.Models(Map()))
 
-  override val persist: (PredictionModelActor.WithId, Int, LinearRegressionModel, FeaturesWithOneToManyValues, Int, Double, String) => Future[Done] =
+  override val persist: (
+      PredictionModelActor.WithId,
+      Int,
+      LinearRegressionModel,
+      FeaturesWithOneToManyValues,
+      Int,
+      Double,
+      String
+  ) => Future[Done] =
     (_, _, _, _, _, _, _) => {
       log.info(s"NoOpPersistence: not persisting model")
       Future.successful(Done)

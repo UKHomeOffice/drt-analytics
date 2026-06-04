@@ -6,7 +6,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.homeoffice.drt.prediction.FeaturesWithOneToManyValues
-import uk.gov.homeoffice.drt.prediction.arrival.features.FeatureColumnsV1.{BestPax, Carrier}
+import uk.gov.homeoffice.drt.prediction.arrival.features.FeatureColumnsV1.{ BestPax, Carrier }
 
 class FeatureVectorsSpec extends AnyWordSpec with Matchers with BeforeAndAfterAll {
   implicit val session: SparkSession = SparkSession
@@ -17,7 +17,6 @@ class FeatureVectorsSpec extends AnyWordSpec with Matchers with BeforeAndAfterAl
   import session.implicits._
 
   override def afterAll(): Unit = session.close()
-
 
   "Given a Row from a DataFrame and a FeaturesWithOneToManyValues, FeatureVectors" should {
     val colNames = Seq("label", "bestPax", "carrier", "origin", "bestPax", "index")
@@ -54,7 +53,8 @@ class FeatureVectorsSpec extends AnyWordSpec with Matchers with BeforeAndAfterAl
     }
 
     "Give me (1, 0, 5d, 3d) where the one to many matches the first of 2 values, followed by the two singles" in {
-      val features = FeaturesWithOneToManyValues(List(BestPax, BestPax, Carrier), oneToManyValues = IndexedSeq("a_1d", "a_xx"))
+      val features =
+        FeaturesWithOneToManyValues(List(BestPax, BestPax, Carrier), oneToManyValues = IndexedSeq("a_1d", "a_xx"))
       FeatureVectors.featuresVectorForRow(row, features) === ml.linalg.Vectors.dense(Array(1d, 0d, 5d, 3d))
     }
   }

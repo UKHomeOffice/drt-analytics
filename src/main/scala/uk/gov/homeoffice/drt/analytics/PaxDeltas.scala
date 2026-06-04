@@ -1,17 +1,17 @@
 package uk.gov.homeoffice.drt.analytics
 
 import org.apache.pekko.NotUsed
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.actor.{ ActorRef, ActorSystem }
 import org.apache.pekko.pattern.ask
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.Timeout
 import org.joda.time.DateTimeZone
-import org.slf4j.{Logger, LoggerFactory}
+import org.slf4j.{ Logger, LoggerFactory }
 import uk.gov.homeoffice.drt.analytics.actors.FeedPersistenceIds
 import uk.gov.homeoffice.drt.analytics.passengers.DailySummaries
-import uk.gov.homeoffice.drt.time.{SDate, SDateLike, UtcDate}
+import uk.gov.homeoffice.drt.time.{ SDate, SDateLike, UtcDate }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 object PaxDeltas {
   val log: Logger = LoggerFactory.getLogger(getClass)
@@ -20,14 +20,16 @@ object PaxDeltas {
   def maybeAverageDelta(maybeDeltas: Seq[Option[Int]]): Option[Int] = {
     val total = maybeDeltas.collect { case Some(diff) => diff }.sum.toDouble
     maybeDeltas.count(_.isDefined) match {
-      case 0 => None
+      case 0               => None
       case daysWithNumbers => Option((total / daysWithNumbers).round.toInt)
     }
   }
 
-  def maybeDeltas(dailyPaxNosByDay: Map[(Long, Long), Int],
-                  numberOfDays: Int,
-                  now: () => SDateLike): Seq[Option[Int]] = {
+  def maybeDeltas(
+      dailyPaxNosByDay: Map[(Long, Long), Int],
+      numberOfDays: Int,
+      now: () => SDateLike
+  ): Seq[Option[Int]] = {
     val startDay = now().addDays(-1).getLocalLastMidnight
 
     (0 until numberOfDays).map { dayOffset =>
@@ -42,13 +44,16 @@ object PaxDeltas {
     }
   }
 
-  def updateDailyPassengersByOriginAndDay(terminal: String,
-                                          startDate: UtcDate,
-                                          numberOfDays: Int,
-                                          passengersActor: ActorRef)
-                                         (implicit timeout: Timeout,
-                                          ec: ExecutionContext,
-                                          system: ActorSystem): Source[Option[(String, SDateLike)], NotUsed] =
+  def updateDailyPassengersByOriginAndDay(
+      terminal: String,
+      startDate: UtcDate,
+      numberOfDays: Int,
+      passengersActor: ActorRef
+  )(implicit
+      timeout: Timeout,
+      ec: ExecutionContext,
+      system: ActorSystem
+  ): Source[Option[(String, SDateLike)], NotUsed] =
     Source(0 to numberOfDays)
       .mapAsync(1) { dayOffset =>
         DailySummaries.dailyPaxCountsForDayAndTerminalByOrigin(terminal, startDate, numberOfDays, sourcesInOrder)

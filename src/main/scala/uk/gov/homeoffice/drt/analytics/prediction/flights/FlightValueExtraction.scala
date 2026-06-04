@@ -7,7 +7,7 @@ import uk.gov.homeoffice.drt.ports.Terminals.Terminal
 import uk.gov.homeoffice.drt.protobuf.messages.FlightsMessage.UniqueArrivalMessage
 import uk.gov.homeoffice.drt.time.UtcDate
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 object FlightMessageConversions {
   def arrivalKeyFromMessage(r: UniqueArrivalMessage): Option[ArrivalKey] =
@@ -21,12 +21,14 @@ object FlightMessageConversions {
 }
 
 object ArrivalValueExtraction {
-  def apply(arrivalsForDateAndTerminal: (UtcDate, Terminal) => Future[Seq[Arrival]],
-            extractValues: Arrival => Option[(Double, Seq[String], Seq[Double], String)],
-            extractKey: Arrival => Option[WithId],
-            preProcessing: (UtcDate, Iterable[Arrival]) => Future[Iterable[Arrival]],
-           )
-           (implicit ec: ExecutionContext): (UtcDate, Terminal) => Future[Map[WithId, Iterable[(Double, Seq[String], Seq[Double], String)]]] =
+  def apply(
+      arrivalsForDateAndTerminal: (UtcDate, Terminal) => Future[Seq[Arrival]],
+      extractValues: Arrival => Option[(Double, Seq[String], Seq[Double], String)],
+      extractKey: Arrival => Option[WithId],
+      preProcessing: (UtcDate, Iterable[Arrival]) => Future[Iterable[Arrival]]
+  )(implicit
+      ec: ExecutionContext
+  ): (UtcDate, Terminal) => Future[Map[WithId, Iterable[(Double, Seq[String], Seq[Double], String)]]] =
     (date, terminal) => {
       arrivalsForDateAndTerminal(date, terminal)
         .flatMap { arrivals =>
@@ -40,10 +42,11 @@ object ArrivalValueExtraction {
         }
     }
 
-  private def extractions(byArrivalKeyProcessed: Map[ArrivalKey, Arrival],
-                          extractValues: Arrival => Option[(Double, Seq[String], Seq[Double], String)],
-                          extractKey: Arrival => Option[WithId]
-                         ): Map[WithId, Iterable[(Double, Seq[String], Seq[Double], String)]] =
+  private def extractions(
+      byArrivalKeyProcessed: Map[ArrivalKey, Arrival],
+      extractValues: Arrival => Option[(Double, Seq[String], Seq[Double], String)],
+      extractKey: Arrival => Option[WithId]
+  ): Map[WithId, Iterable[(Double, Seq[String], Seq[Double], String)]] =
     byArrivalKeyProcessed
       .groupBy {
         case (_, arrival) => extractKey(arrival)

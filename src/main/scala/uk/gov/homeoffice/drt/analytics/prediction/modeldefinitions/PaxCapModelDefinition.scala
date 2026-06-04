@@ -1,6 +1,6 @@
 package uk.gov.homeoffice.drt.analytics.prediction.modeldefinitions
 
-import uk.gov.homeoffice.drt.actor.PredictionModelActor.{WithId, Terminal => TerminalId}
+import uk.gov.homeoffice.drt.actor.PredictionModelActor.{ Terminal => TerminalId, WithId }
 import uk.gov.homeoffice.drt.analytics.prediction.ModelDefinition
 import uk.gov.homeoffice.drt.arrivals.Arrival
 import uk.gov.homeoffice.drt.ports.Terminals.Terminal
@@ -8,7 +8,7 @@ import uk.gov.homeoffice.drt.prediction.arrival.ArrivalFeatureValuesExtractor.pe
 import uk.gov.homeoffice.drt.prediction.arrival.PaxCapModelAndFeaturesV2
 import uk.gov.homeoffice.drt.prediction.arrival.features.Feature
 import uk.gov.homeoffice.drt.prediction.arrival.features.FeatureColumnsV2._
-import uk.gov.homeoffice.drt.time.{LocalDate, SDate, SDateLike}
+import uk.gov.homeoffice.drt.time.{ LocalDate, SDate, SDateLike }
 
 object PaxCapModelDefinition extends ModelDefinition[Arrival, Terminal] {
   implicit val sdateTs: Long => SDateLike = (ts: Long) => SDate(ts)
@@ -36,10 +36,10 @@ object PaxCapModelDefinition extends ModelDefinition[Arrival, Terminal] {
     DayOfWeek(),
     Carrier,
     Origin,
-    FlightNumber,
+    FlightNumber
   )
   override val aggregateValue: Arrival => Option[WithId] = TerminalId.fromArrival
-  override val targetValueAndFeatures: Arrival => Option[(Double, Seq[String], Seq[Double], String)] = percentCapacity(features)
+  override val targetValueAndFeatures: Arrival => Option[(Double, Seq[String], Seq[Double], String)] =
+    percentCapacity(features)
   override val baselineValue: Terminal => Double = (_: Terminal) => 0d
 }
-

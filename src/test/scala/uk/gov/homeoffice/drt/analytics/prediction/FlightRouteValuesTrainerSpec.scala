@@ -1,8 +1,8 @@
 package uk.gov.homeoffice.drt.analytics.prediction
 
-import org.apache.pekko.actor.{Actor, ActorRef, ActorSystem, Props}
+import org.apache.pekko.actor.{ Actor, ActorRef, ActorSystem, Props }
 import org.apache.pekko.stream.scaladsl.Source
-import org.apache.pekko.testkit.{TestKit, TestProbe}
+import org.apache.pekko.testkit.{ TestKit, TestProbe }
 import org.apache.pekko.util.Timeout
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -11,14 +11,14 @@ import uk.gov.homeoffice.drt.actor.commands.Commands.GetState
 import uk.gov.homeoffice.drt.analytics.actors.Ack
 import uk.gov.homeoffice.drt.analytics.prediction.dump.NoOpDump
 import uk.gov.homeoffice.drt.notifications.NoopSlackClient
-import uk.gov.homeoffice.drt.ports.Terminals.{T2, Terminal}
-import uk.gov.homeoffice.drt.prediction.arrival.features.FeatureColumnsV1.{DayOfWeek, PartOfDay}
+import uk.gov.homeoffice.drt.ports.Terminals.{ T2, Terminal }
+import uk.gov.homeoffice.drt.prediction.arrival.features.FeatureColumnsV1.{ DayOfWeek, PartOfDay }
 import uk.gov.homeoffice.drt.prediction.category.FlightCategory
-import uk.gov.homeoffice.drt.prediction.{ActorModelPersistence, ModelCategory}
-import uk.gov.homeoffice.drt.time.{SDate, SDateLike}
+import uk.gov.homeoffice.drt.prediction.{ ActorModelPersistence, ModelCategory }
+import uk.gov.homeoffice.drt.time.{ SDate, SDateLike }
 
 import scala.concurrent.duration.DurationInt
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.concurrent.{ ExecutionContext, ExecutionContextExecutor }
 
 case class MockPersistenceActor(probe: ActorRef) extends Actor {
   override def receive: Receive = {
@@ -32,17 +32,18 @@ case class MockPersistenceActor(probe: ActorRef) extends Actor {
   }
 }
 
-case class MockPersistence(probe: ActorRef)
-                          (implicit
-                           val system: ActorSystem, val ec: ExecutionContext, val timeout: Timeout
-                          ) extends ActorModelPersistence {
+case class MockPersistence(probe: ActorRef)(implicit
+    val system: ActorSystem,
+    val ec: ExecutionContext,
+    val timeout: Timeout
+) extends ActorModelPersistence {
   override val modelCategory: ModelCategory = FlightCategory
   override val actorProvider: (ModelCategory, WithId, Option[Long]) => ActorRef =
     (_, _, _) => system.actorOf(Props(MockPersistenceActor(probe)), s"test-actor")
 }
 
 class FlightRouteValuesTrainerSpec
-  extends TestKit(ActorSystem("FlightRouteValuesTrainer"))
+    extends TestKit(ActorSystem("FlightRouteValuesTrainer"))
     with AnyWordSpecLike with BeforeAndAfterAll {
 
   implicit val ec: ExecutionContextExecutor = system.dispatcher
@@ -76,7 +77,10 @@ class FlightRouteValuesTrainerSpec
     }
   }
 
-  private def getTrainer(examples: Iterable[(Double, Seq[String], Seq[Double], String)], probe: ActorRef): FlightRouteValuesTrainer = {
+  private def getTrainer(
+      examples: Iterable[(Double, Seq[String], Seq[Double], String)],
+      probe: ActorRef
+  ): FlightRouteValuesTrainer = {
     implicit val sdateProvider: Long => SDateLike = (ts: Long) => SDate(ts)
     FlightRouteValuesTrainer(
       modelName = "some-model",
@@ -92,7 +96,7 @@ class FlightRouteValuesTrainerSpec
       persistence = MockPersistence(probe),
       dumper = NoOpDump,
       (_, _) => Seq(T2),
-      slackClient = NoopSlackClient,
+      slackClient = NoopSlackClient
     )
   }
 }
