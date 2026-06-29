@@ -7,6 +7,10 @@ platform:
   os: linux
   arch: amd64
 
+services:
+  - name: docker
+    image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/dind
+
 steps:
   - name: Unit tests
     pull: if-not-exists
@@ -73,8 +77,6 @@ steps:
     when:
       event:
         - push
-      branch:
-        - leader
     depends_on:
       - Publish app
 
@@ -85,7 +87,6 @@ steps:
       - /root/entrypoint.sh
       - sbt scapegoat | true
     environment:
-      NVD_BASE_URL: http://nvdmirror:8008
       ARTIFACTORY_PASSWORD:
         from_secret: ARTIFACTORY_PASSWORD
       ARTIFACTORY_USERNAME: drt_ci
@@ -93,31 +94,55 @@ steps:
     when:
       event:
         - push
-      branch:
-        - leader
     depends_on:
       - Code coverage report
 
-  - name: Dependency check
-    pull: if-not-exists
-    image: quay.io/ukhomeofficedigital/scala-sbt-nodejs:v1.4.0-debian12-jdk17-node20
+  - name: pull-image-for-scan
+    pull: Always
+    image: quay.io/ukhomeofficedigital/dind-awscli:19.03.12-dind-1.18.55
+    resources:
+      limits:
+        cpu: 100
+        memory: 256Mi
     commands:
-      - /root/entrypoint.sh
-      - sbt -Dlog4j2.level=info dependencyCheck
+      - n=0; until docker info >/dev/null 2>&1 || [ "$n" -ge 60 ]; do n=$(( n + 1 )); sleep 1; done
+      - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 340268328991.dkr.ecr.eu-west-2.amazonaws.com
+      - docker pull 340268328991.dkr.ecr.eu-west-2.amazonaws.com/drt/drt-analytics:B${DRONE_BUILD_NUMBER}
     environment:
-      NVD_API_KEY:
-        from_secret: NVD_API_KEY_SECRET
-      ARTIFACTORY_PASSWORD:
-        from_secret: ARTIFACTORY_PASSWORD
-      ARTIFACTORY_USERNAME: drt_ci
-      ENV_LOG_LEVEL: ERROR
+      AWS_ACCESS_KEY_ID:
+        from_secret: AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      AWS_REGION: eu-west-2
+      DOCKER_HOST: tcp://docker:2375
+      DOCKER_TLS_CERTDIR: ""
     when:
       event:
         - push
-      branch:
-        - leader
     depends_on:
-      - Scapegoat
+      - Publish app
+
+  - name: scan-image
+    pull: Always
+    image: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/acp/trivy/client:latest
+    resources:
+      limits:
+        cpu: 1000
+        memory: 1024Mi
+    environment:
+      FAIL_ON_DETECTION: false
+      SEVERITY: MEDIUM,HIGH,CRITICAL
+      IMAGE_NAME: 340268328991.dkr.ecr.eu-west-2.amazonaws.com/drt/drt-analytics:B${DRONE_BUILD_NUMBER}
+      AWS_ACCESS_KEY_ID:
+        from_secret: AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY:
+        from_secret: AWS_SECRET_ACCESS_KEY
+      AWS_REGION: eu-west-2
+    when:
+      event:
+        - push
+    depends_on:
+      - pull-image-for-scan
 
   - name: Sonar scanner
     pull: if-not-exists
@@ -129,10 +154,8 @@ steps:
     when:
       event:
         - push
-      branch:
-        - leader
     depends_on:
-      - Dependency check
+      - Scapegoat
 
   - name: Slack notification
     pull: if-not-exists
@@ -147,6 +170,6 @@ steps:
       status: [ success, failure ]
       event: push
     depends_on:
-      - Publish app
+      - Sonar scanner
 
 ...
