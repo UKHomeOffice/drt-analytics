@@ -13,6 +13,7 @@ lazy val root = (project in file("."))
     name := "drt-analytics",
     trapExit := false,
     libraryDependencies ++= AppDependencies.all,
+    dependencyOverrides ++= AppDependencies.dependencyOverrides,
     resolvers +=
       "Artifactory Realm libs release" at "https://artifactory.digital.homeoffice.gov.uk/artifactory/libs-release/",
     credentials += Credentials(Path.userHome / ".ivy2" / ".credentials"),
