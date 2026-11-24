@@ -42,5 +42,9 @@ object AppDependencies {
 
   val all: Seq[ModuleID] = compileDependencies ++ testDependencies
 
-  val dependencyOverrides: Seq[ModuleID] = Seq("io.netty" % "netty-all" % "4.2.20.Final")
+  val dependencyOverrides: Seq[ModuleID] = Seq(
+    "io.netty" % "netty-all"                       % "4.2.20.Final",
+    "io.netty" % "netty-tcnative-boringssl-static" % "2.0.85.Final",
+    "io.netty" % "netty-tcnative-classes"          % "2.0.85.Final"
+  )
 }
